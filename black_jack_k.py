@@ -73,19 +73,23 @@ class BlackJackKukoldini:
     def stand(self):
         self.over = True
         self.dealer_grabbing()
-        return self.validation()
+        res = self.validation()
+        self.remuniration(res)
+        return res
 
     def conver(self, deck):
         score = 0
         for card in deck:
             score += self.WORTH[card]
 
-        print(score)
         return score
 
     def validation(self):
         p_score = self.conver(self.players_deck)
         d_score = self.conver(self.dealers_deck)
+
+        if 'KUKOLDINI' in self.players_deck and 'KUKOLDINI' in self.dealers_deck:
+            return "Ничья! Банк возвращается."
 
         if 'KUKOLDINI' in self.players_deck:
             return f"Победа {self.player_name}!"
@@ -94,23 +98,17 @@ class BlackJackKukoldini:
             return "Куколдини выиграл эту партию!"
 
         if p_score > 21:
-            self.dealers_bank += self.pot
             return "Перебор! Куколдини забирает банк."
 
         if d_score > 21:
-            self.players_bank += self.pot
             return f"{self.player_name} победил! Куколдини перебрал."
 
         if p_score > d_score:
-            self.players_bank += self.pot
             return f"Победа {self.player_name}!"
 
         if d_score > p_score:
-            self.dealers_bank += self.pot
             return "Куколдини выиграл эту партию."
 
-        self.dealers_bank += self.pot // 2
-        self.players_bank += self.pot // 2
         return "Ничья! Банк возвращается."
     
     def round_restart(self):
@@ -137,3 +135,17 @@ class BlackJackKukoldini:
         self.players_bank -= bet
         self.dealers_bank -= bet
         self.pot = bet * 2
+    
+    def remuniration(self, verdict):
+        if self.player_name in verdict:
+            self.players_bank += self.pot
+         
+        elif 'Куколдини' in verdict:
+            self.dealers_bank += self.pot
+        
+        else:
+            self.players_bank += self.pot // 2
+            self.dealers_bank += self.pot // 2
+
+        self.pot = 0
+    

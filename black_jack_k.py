@@ -124,13 +124,13 @@ class BlackJackKukoldini:
         self.over = False
     
     def betting(self, bet=500):
-        bet = min(bet, self.players_bank, self.dealers_bank)
-        
         if self.players_bank == 0:
             return 'player'
         
         elif self.dealers_bank == 0:
             return 'dealer'
+        
+        bet = min(bet, self.players_bank, self.dealers_bank)
         
         self.players_bank -= bet
         self.dealers_bank -= bet
@@ -148,4 +148,4 @@ class BlackJackKukoldini:
             self.dealers_bank += self.pot // 2
 
         self.pot = 0
-    
+

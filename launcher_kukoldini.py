@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QTabWidget,
     QVBoxLayout,
     QWidget,
+    QMessageBox,
 )
 
 
@@ -29,11 +30,11 @@ class Launcher(QMainWindow):
         self.black_jack = BlackJackKukoldini()
         self.blackjack_tab = QWidget()
         self.black_jack_layout = QGridLayout(self.blackjack_tab)
-        self.start_the_game = QPushButton("Начать игру", self.blackjack_tab)
-        self.start_the_game.clicked.connect(self.kukoldini_game)
-        self.start_the_game.setStyleSheet("padding: 100px")
+        self.start_the_gamed = QPushButton("Начать игру", self.blackjack_tab)
+        self.start_the_gamed.clicked.connect(self.kukoldini_game)
+        self.start_the_gamed.setStyleSheet("padding: 100px")
         self.black_jack_layout.addWidget(
-            self.start_the_game, 1, 1, Qt.AlignmentFlag.AlignCenter
+            self.start_the_gamed, 1, 1, Qt.AlignmentFlag.AlignCenter
         )
 
         checkmates_tab = QWidget()
@@ -57,17 +58,17 @@ class Launcher(QMainWindow):
         p_lo.setContentsMargins(10, 10, 10, 50)
 
         pl_lo = QVBoxLayout()
-        players_bet = QLabel(f"Баланс {self.name}:")
-        players_bet.setStyleSheet("font-size: 20px")
-        players_bet.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.players_bet_l = QLabel("Баланс ???:")
+        self.players_bet_l.setStyleSheet("font-size: 20px")
+        self.players_bet_l.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.players_bet = QLineEdit()
         self.players_bet.setReadOnly(True)
-        players_hand = QLabel(f"Рука {self.name}")
-        players_hand.setStyleSheet("font-size: 20px")
-        players_hand.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.players_hand_l = QLabel("Рука ???:")
+        self.players_hand_l.setStyleSheet("font-size: 20px")
+        self.players_hand_l.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.players_hand = QLabel("")
         self.players_hand.setStyleSheet("font-size: 24px;")
-        pl_lo.addWidget(players_bet)
+        pl_lo.addWidget(self.players_bet_l)
         pl_lo.addWidget(self.players_bet)
         pl_lo.setContentsMargins(10, 10, 10, 50)
 
@@ -77,9 +78,9 @@ class Launcher(QMainWindow):
         kukoldini.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.kukoldinis_bet = QLineEdit()
         self.kukoldinis_bet.setReadOnly(True)
-        kukoldinis_hand = QLabel("Рука Куколдини")
-        kukoldinis_hand.setStyleSheet("font-size: 20px")
-        kukoldinis_hand.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.kukoldinis_hand_l = QLabel("Рука Куколдини")
+        self.kukoldinis_hand_l.setStyleSheet("font-size: 20px")
+        self.kukoldinis_hand_l.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.kukoldinis_speech = QLabel("")
         self.kukoldinis_speech.setStyleSheet("font-size: 24px;")
         self.kukoldinis_hand = QLabel("")
@@ -113,8 +114,8 @@ class Launcher(QMainWindow):
         layout.addLayout(pl_lo, 0, 0, Qt.AlignmentFlag.AlignTop)
         layout.addLayout(p_lo, 0, 1, Qt.AlignmentFlag.AlignTop)
         layout.addLayout(k_lo, 0, 2, Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(players_hand, 1, 0)
-        layout.addWidget(kukoldinis_hand, 1, 2)
+        layout.addWidget(self.players_hand_l, 1, 0)
+        layout.addWidget(self.kukoldinis_hand_l, 1, 2)
         layout.addWidget(self.kukoldinis_speech, 1, 1)
         layout.addWidget(self.players_hand, 2, 0)
         layout.addWidget(self.kukoldinis_hand, 2, 2)
@@ -127,16 +128,26 @@ class Launcher(QMainWindow):
         pass
 
     def kukoldini_game(self):
-        self.start_the_game.deleteLater()
         self.name = self.get_players_name()
-        self.blackjack_custom()
+        self.black_jack.game_starter(self.name)
+        if not hasattr(self, "pot"):
+            self.blackjack_custom()
+
+        if hasattr(self, "pot"):
+            self.reset()
+
+        self.bj_toogler(self.black_jack_layout, True)
+        self.start_the_gamed.hide()
+
+        if hasattr(self, "pot"):
+            self.update_ui()
+
         self.start_the_game.setText("Игра в самом разгаре!")
         self.start_the_game.setEnabled(False)
-        self.black_jack.game_starter(self.name)
         self.play_round()
 
     def play_round(self):
-        if self.stop():
+        if self.stop:
             return
 
         self.kukoldinis_speech.setText("")
@@ -165,12 +176,14 @@ class Launcher(QMainWindow):
             self.stop = True
             self.add_cards_to_deck.setEnabled(False)
             self.pass_grabbing.setEnabled(False)
+            self.new_game_question()
 
         elif verdict == "dealer":
             self.kukoldinis_speech.setText("Куколдини разорен! Ты сорвал весь куш!")
             self.stop = True
             self.add_cards_to_deck.setEnabled(False)
             self.pass_grabbing.setEnabled(False)
+            self.new_game_question()
 
         self.update_ui()
 
@@ -179,21 +192,22 @@ class Launcher(QMainWindow):
         self.update_ui()
         self.kukoldinis_speech.setText(res)
         self.kukoldinis_hand.setText(
-            ", ".join(f"[{i}]" for i in self.black_jack.dealers_deck)
+            "\n".join(f"[{i}]" for i in self.black_jack.dealers_deck)
         )
         self.round_ending()
 
     def get_players_name(self):
-        name = QInputDialog.getText(
+        name, validation = QInputDialog.getText(
             self, "Введите имя игрока", "Новый Маргинал вступает в игру..."
-        )[0].strip()
-        if not name:
-            self.kukoldinis_speech.setText("Назовись, чужак!")
+        )
+        if not name or not validation:
+            if hasattr(self, "kukoldinis_speech"):
+                self.kukoldinis_speech.setText("Назовись, чужак!")
             self.get_players_name()
 
         if hasattr(self, "kukoldinis_speech"):
             self.kukoldinis_speech.clear()
-        return name
+        return name.strip()
 
     def player_grabbing(self):
         self.black_jack.player_grabbing()
@@ -204,15 +218,25 @@ class Launcher(QMainWindow):
         self.kukoldinis_bet.setText(str(self.black_jack.dealers_bank))
 
         self.players_hand.setText(
-            ", ".join(f"[{i}]" for i in self.black_jack.players_deck)
+            "\n".join(f"[{i}]" for i in self.black_jack.players_deck)
         )
         self.kukoldinis_hand.setText(
-            ", ".join("[?]" for i in self.black_jack.dealers_deck)
+            "\n".join("[?]" for i in self.black_jack.dealers_deck)
         )
 
         self.pot.setText(str(self.black_jack.pot))
+        self.players_bet_l.setText(f"Баланс {self.name}:")
+        self.players_hand_l.setText(f"Рука {self.name}:")
 
     def reset(self):
+        self.kukoldinis_speech.clear()
+        self.kukoldinis_bet.clear()
+        self.players_bet.clear()
+        self.players_hand_l.setText(f"Рука {self.name}")
+        self.kukoldinis_hand.clear()
+        self.players_hand.clear()
+        self.players_bet_l.setText(f"Баланс: {self.name}")
+        self.pot.clear()
         self.black_jack.round_restart()
         self.add_cards_to_deck.setEnabled(True)
         self.pass_grabbing.setEnabled(True)
@@ -225,6 +249,39 @@ class Launcher(QMainWindow):
         self.start_the_game.setEnabled(True)
         self.start_the_game.clicked.disconnect()
         self.start_the_game.clicked.connect(self.play_round)
+
+    def new_game_question(self):
+        answer = QMessageBox.question(
+            self,
+            "Повторная игра",
+            "Сыграем еще?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            self.reset()
+            self.kukoldini_game()
+            return
+
+        self.reset()
+        self.bj_toogler(self.black_jack_layout, False)
+        self.start_the_gamed.show()
+
+    @staticmethod
+    def bj_toogler(layout: QGridLayout | QHBoxLayout | QVBoxLayout, visibility: bool):
+        if layout is None:
+            return
+
+        for widget in range(layout.count()):
+            item = layout.itemAt(widget)
+            widget = item.widget()
+
+            if widget is not None:
+                widget.setVisible(visibility)
+
+            else:
+                layout_s = item.layout()
+                if layout_s is not None:
+                    Launcher.bj_toogler(layout_s, visibility)
 
 
 if __name__ == "__main__":

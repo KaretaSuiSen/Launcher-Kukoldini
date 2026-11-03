@@ -57,7 +57,7 @@ class Launcher(QMainWindow):
         p_lo.setContentsMargins(10, 10, 10, 50)
 
         pl_lo = QVBoxLayout()
-        players_bet = QLabel(f'Баланс {self.name}:')
+        players_bet = QLabel(f"Баланс {self.name}:")
         players_bet.setStyleSheet("font-size: 20px")
         players_bet.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.players_bet = QLineEdit()
@@ -65,8 +65,8 @@ class Launcher(QMainWindow):
         players_hand = QLabel(f"Рука {self.name}")
         players_hand.setStyleSheet("font-size: 20px")
         players_hand.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.players_hand = QLabel('')
-        self.players_hand.setStyleSheet('font-size: 24px;')
+        self.players_hand = QLabel("")
+        self.players_hand.setStyleSheet("font-size: 24px;")
         pl_lo.addWidget(players_bet)
         pl_lo.addWidget(self.players_bet)
         pl_lo.setContentsMargins(10, 10, 10, 50)
@@ -81,8 +81,10 @@ class Launcher(QMainWindow):
         kukoldinis_hand.setStyleSheet("font-size: 20px")
         kukoldinis_hand.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.kukoldinis_speech = QLabel("")
-        self.kukoldinis_hand = QLabel('')
-        self.kukoldinis_hand.setStyleSheet('font-size: 24px;')
+        self.kukoldinis_speech.setStyleSheet("font-size: 24px;")
+        self.kukoldinis_hand = QLabel("")
+        self.kukoldinis_hand.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.kukoldinis_hand.setStyleSheet("font-size: 24px;")
         k_lo.addWidget(kukoldini)
         k_lo.addWidget(self.kukoldinis_bet)
         k_lo.setContentsMargins(10, 10, 10, 50)
@@ -134,41 +136,53 @@ class Launcher(QMainWindow):
         self.play_round()
 
     def play_round(self):
+        if self.stop():
+            return
+
+        self.kukoldinis_speech.setText("")
+        self.start_the_game.setEnabled(False)
+        self.start_the_game.setText("Игра в самом разгаре!")
+        self.add_cards_to_deck.setEnabled(True)
+        self.pass_grabbing.setEnabled(True)
+
         self.black_jack.round_restart()
         self.black_jack.round_starter()
 
-        bet = -1
-        while bet < 0:
-            bet = QInputDialog.getInt(self,
-                                  'Ставки',
-                                  'Ставлю душу своей...',
-        )[0]
-            
+        bet = (-1, True)
+        while bet[0] < 100 or not bet[1]:
+            bet = QInputDialog.getInt(
+                self,
+                "Ставки",
+                "Ставлю душу своей...",
+                500,
+                100,
+            )
+        bet = bet[0]
+
         verdict = self.black_jack.betting(bet)
         if verdict == "player":
             self.kukoldinis_speech.setText("Ты банкрот! Игра окончена.")
             self.stop = True
-        
+            self.add_cards_to_deck.setEnabled(False)
+            self.pass_grabbing.setEnabled(False)
+
         elif verdict == "dealer":
-            self.kukoldinis_speech.setText(
-                "Куколдини разорен! Ты сорвал весь куш!"
-            )
+            self.kukoldinis_speech.setText("Куколдини разорен! Ты сорвал весь куш!")
             self.stop = True
+            self.add_cards_to_deck.setEnabled(False)
+            self.pass_grabbing.setEnabled(False)
 
         self.update_ui()
-        
-
 
     def standing(self):
-        self.black_jack.stand()
-        self.black_jack.dealer_grabbing()
+        res = self.black_jack.stand()
         self.update_ui()
-        res = self.black_jack.validation()
         self.kukoldinis_speech.setText(res)
-        self.kukoldinis_hand.setText(', '.join(f'[{i}]' for i in self.black_jack.players_deck))
-        self.add_cards_to_deck.setEnabled(False)
-        self.pass_grabbing.setEnabled(False)
-        
+        self.kukoldinis_hand.setText(
+            ", ".join(f"[{i}]" for i in self.black_jack.dealers_deck)
+        )
+        self.round_ending()
+
     def get_players_name(self):
         name = QInputDialog.getText(
             self, "Введите имя игрока", "Новый Маргинал вступает в игру..."
@@ -180,17 +194,21 @@ class Launcher(QMainWindow):
         if hasattr(self, "kukoldinis_speech"):
             self.kukoldinis_speech.clear()
         return name
-    
+
     def player_grabbing(self):
         self.black_jack.player_grabbing()
         self.update_ui()
-    
+
     def update_ui(self):
         self.players_bet.setText(str(self.black_jack.players_bank))
         self.kukoldinis_bet.setText(str(self.black_jack.dealers_bank))
 
-        self.players_hand.setText(', '.join(f'[{i}]' for i in self.black_jack.players_deck))
-        self.kukoldinis_hand.setText(', '.join('[?]' for i in self.black_jack.dealers_deck))
+        self.players_hand.setText(
+            ", ".join(f"[{i}]" for i in self.black_jack.players_deck)
+        )
+        self.kukoldinis_hand.setText(
+            ", ".join("[?]" for i in self.black_jack.dealers_deck)
+        )
 
         self.pot.setText(str(self.black_jack.pot))
 
@@ -199,7 +217,15 @@ class Launcher(QMainWindow):
         self.add_cards_to_deck.setEnabled(True)
         self.pass_grabbing.setEnabled(True)
         self.stop = False
-        
+
+    def round_ending(self):
+        self.add_cards_to_deck.setEnabled(False)
+        self.pass_grabbing.setEnabled(False)
+        self.start_the_game.setText("Сыграем еще один раунд?")
+        self.start_the_game.setEnabled(True)
+        self.start_the_game.clicked.disconnect()
+        self.start_the_game.clicked.connect(self.play_round)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

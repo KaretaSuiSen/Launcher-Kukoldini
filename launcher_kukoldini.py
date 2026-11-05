@@ -1,8 +1,10 @@
 import os
 import sys
-from black_jack_k import BlackJackKukoldini
 
+from black_jack_k import BlackJackKukoldini
+from kukoldini_chess import Kukoldini_Pawns
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QApplication,
     QGridLayout,
@@ -11,11 +13,11 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMessageBox,
     QPushButton,
     QTabWidget,
     QVBoxLayout,
     QWidget,
-    QMessageBox,
 )
 
 
@@ -26,22 +28,39 @@ class Launcher(QMainWindow):
         self.menu = QTabWidget()
         self.name = "???"
         self.setCentralWidget(self.menu)
+        self.setWindowTitle("Лаунчер Куколдини")
+        need_dir = os.path.dirname(os.path.abspath(__file__))
+        icon = os.path.join(need_dir, "imgs\\launcher_kukoldini.png").replace("\\", "/")
+        self.setWindowIcon(QIcon(icon))
 
         self.black_jack = BlackJackKukoldini()
         self.blackjack_tab = QWidget()
         self.black_jack_layout = QGridLayout(self.blackjack_tab)
         self.start_the_gamed = QPushButton("Начать игру", self.blackjack_tab)
         self.start_the_gamed.clicked.connect(self.kukoldini_game)
-        self.start_the_gamed.setStyleSheet("padding: 100px")
+        self.start_the_gamed.setStyleSheet("""QPushButton {padding: 100px; font-size: 40px; border: 2px solid rgb(190, 150, 4); border-radius: 8px}
+                                           QPushButton:hover {background-color: rgba(50, 108, 104, 0.8); border: 2px solid rgb(190, 150, 4); border-radius: 8px}""")
         self.black_jack_layout.addWidget(
             self.start_the_gamed, 1, 1, Qt.AlignmentFlag.AlignCenter
         )
 
-        checkmates_tab = QWidget()
-        self.checkmates_layout = QGridLayout(checkmates_tab)
+        self.checkmates = Kukoldini_Pawns()
+        self.checkmates_tab = QWidget()
+        self.checkmates_layout = QGridLayout(self.checkmates_tab)
+        self.start_the_gamec = QPushButton("Начать игру", self.checkmates_tab)
+        self.start_the_gamec.clicked.connect(self.chess_game)
+        self.start_the_gamec.setStyleSheet("""QPushButton {padding: 100px; font-size: 40px; border: 2px solid rgb(190, 150, 4); border-radius: 8px}
+                                           QPushButton:hover {background-color: rgba(50, 108, 104, 0.8); border: 2px solid rgb(190, 150, 4); border-radius: 8px}""")
+        self.checkmates_layout.addWidget(
+            self.start_the_gamec, 1, 1, Qt.AlignmentFlag.AlignCenter
+        )
+        self.board_buttons = {}
+
+        stats_tab = QWidget()
 
         self.menu.addTab(self.blackjack_tab, "БлекДжек Куколдини")
-        self.menu.addTab(checkmates_tab, "Пешки Куколдини")
+        self.menu.addTab(self.checkmates_tab, "Пешки Куколдини")
+        self.menu.addTab(stats_tab, "Статистика игрока")
 
     def blackjack_custom(self):
         self.stop = False
@@ -91,17 +110,20 @@ class Launcher(QMainWindow):
         k_lo.setContentsMargins(10, 10, 10, 50)
 
         self.pass_grabbing = QPushButton("Спасовать")
-        self.pass_grabbing.setStyleSheet("padding: 40px; font-size: 24px;")
+        self.pass_grabbing.setStyleSheet("""QPushButton {padding: 40px; font-size: 24px; background-color: rgba(50, 108, 104, 0.5)}
+                                        QPushButton:hover {background-color: rgba(50, 108, 104, 0.8); border: 2px solid rgb(190, 150, 4); border-radius: 8px}""")
         self.pass_grabbing.clicked.connect(self.standing)
         self.add_cards_to_deck = QPushButton("Добрать карты")
-        self.add_cards_to_deck.setStyleSheet("padding: 40px; font-size: 24px;")
+        self.add_cards_to_deck.setStyleSheet("""QPushButton {padding: 40px; font-size: 24px; background-color: rgba(50, 108, 104, 0.5)}
+                                        QPushButton:hover {background-color: rgba(50, 108, 104, 0.8); border: 2px solid rgb(190, 150, 4); border-radius: 8px}""")
         self.add_cards_to_deck.clicked.connect(self.player_grabbing)
         self.start_the_game = QPushButton("Начать игру")
-        self.start_the_game.setStyleSheet("padding: 40px; font-size: 24px;")
+        self.start_the_game.setStyleSheet("""QPushButton {padding: 40px; font-size: 24px; background-color: rgba(50, 108, 104, 0.5)}
+                                        QPushButton:hover {background-color: rgba(50, 108, 104, 0.8); border: 2px solid rgb(190, 150, 4); border-radius: 8px}""")
         self.start_the_game.clicked.connect(self.kukoldini_game)
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        img_path = os.path.join(base_dir, "diler.jpg").replace("\\", "/")
+        img_path = os.path.join(base_dir, "imgs\\diler.jpg").replace("\\", "/")
 
         self.blackjack_tab.setObjectName("blackjack_tab")
 
@@ -124,11 +146,9 @@ class Launcher(QMainWindow):
         layout.addWidget(self.start_the_game, 5, 1)
         layout.setRowStretch(3, 1)
 
-    def chackmates_custom(self):
-        pass
-
     def kukoldini_game(self):
-        self.name = self.get_players_name()
+        name = self.get_players_name()
+        self.name = name
         self.black_jack.game_starter(self.name)
         if not hasattr(self, "pot"):
             self.blackjack_custom()
@@ -136,13 +156,14 @@ class Launcher(QMainWindow):
         if hasattr(self, "pot"):
             self.reset()
 
+        self.name = name
+
         self.bj_toogler(self.black_jack_layout, True)
         self.start_the_gamed.hide()
 
         if hasattr(self, "pot"):
             self.update_ui()
 
-        self.start_the_game.setText("Игра в самом разгаре!")
         self.start_the_game.setEnabled(False)
         self.play_round()
 
@@ -153,6 +174,8 @@ class Launcher(QMainWindow):
         self.kukoldinis_speech.setText("")
         self.start_the_game.setEnabled(False)
         self.start_the_game.setText("Игра в самом разгаре!")
+        self.start_the_game.setStyleSheet("""QPushButton {padding: 40px; font-size: 24px; background-color: rgba(50, 108, 104, 0.5); color: rgba(0, 0, 0, 0.8)}
+                                          QPushButton:hover {background-color: rgba(50, 108, 104, 0.8); border: 2px solid rgb(190, 150, 4); border-radius: 8px}""")
         self.add_cards_to_deck.setEnabled(True)
         self.pass_grabbing.setEnabled(True)
 
@@ -176,14 +199,14 @@ class Launcher(QMainWindow):
             self.stop = True
             self.add_cards_to_deck.setEnabled(False)
             self.pass_grabbing.setEnabled(False)
-            self.new_game_question()
+            self.new_game_question_bj()
 
         elif verdict == "dealer":
             self.kukoldinis_speech.setText("Куколдини разорен! Ты сорвал весь куш!")
             self.stop = True
             self.add_cards_to_deck.setEnabled(False)
             self.pass_grabbing.setEnabled(False)
-            self.new_game_question()
+            self.new_game_question_bj()
 
         self.update_ui()
 
@@ -229,6 +252,7 @@ class Launcher(QMainWindow):
         self.players_hand_l.setText(f"Рука {self.name}:")
 
     def reset(self):
+        self.name = "???"
         self.kukoldinis_speech.clear()
         self.kukoldinis_bet.clear()
         self.players_bet.clear()
@@ -245,12 +269,14 @@ class Launcher(QMainWindow):
     def round_ending(self):
         self.add_cards_to_deck.setEnabled(False)
         self.pass_grabbing.setEnabled(False)
+        self.start_the_game.setStyleSheet("""QPushButton {padding: 40px; font-size: 24px; background-color: rgba(50, 108, 104, 0.5)}
+                                          QPushButton:hover {background-color: rgba(50, 108, 104, 0.8); border: 2px solid rgb(190, 150, 4); border-radius: 8px}""")
         self.start_the_game.setText("Сыграем еще один раунд?")
         self.start_the_game.setEnabled(True)
         self.start_the_game.clicked.disconnect()
         self.start_the_game.clicked.connect(self.play_round)
 
-    def new_game_question(self):
+    def new_game_question_bj(self):
         answer = QMessageBox.question(
             self,
             "Повторная игра",
@@ -263,11 +289,13 @@ class Launcher(QMainWindow):
             return
 
         self.reset()
-        self.bj_toogler(self.black_jack_layout, False)
+        self.vsblty_toogler(self.black_jack_layout, False)
         self.start_the_gamed.show()
 
     @staticmethod
-    def bj_toogler(layout: QGridLayout | QHBoxLayout | QVBoxLayout, visibility: bool):
+    def vsblty_toogler(
+        layout: QGridLayout | QHBoxLayout | QVBoxLayout, visibility: bool
+    ):
         if layout is None:
             return
 
@@ -281,7 +309,146 @@ class Launcher(QMainWindow):
             else:
                 layout_s = item.layout()
                 if layout_s is not None:
-                    Launcher.bj_toogler(layout_s, visibility)
+                    Launcher.vsblty_toogler(layout_s, visibility)
+
+    def checkmates_custom(self):
+        layout = self.checkmates_layout
+
+        for i in range(64):
+            btn = QPushButton("")
+            btn.clicked.connect(lambda _, square=i: self.cell_clicked(square))
+            row, col = i // 8, i % 8
+            color = ["white", "black"][(row + col) % 2]
+            ss = f"background-color: {color}; color: rgb(190, 150, 4)"
+            btn.setFixedSize(70, 70)
+            btn.setStyleSheet(ss)
+            self.board_buttons[i] = btn
+            layout.addWidget(btn, 7 - row + 1, col + 1)
+
+        self.game_dialog = QLabel("")
+        self.game_dialog.setStyleSheet("color: rgb(190, 150, 4); font-size: 40px;")
+        self.back = QPushButton("БЭК")
+        self.back.setStyleSheet("""QPushButton {font-size: 24px; background-color: rgba(50, 108, 104, 0.5)}
+                                    QPushButton:hover {background-color: rgba(50, 108, 104, 0.8); border: 2px solid rgb(190, 150, 4); border-radius: 8px}""")
+        self.back.setFixedSize(400, 60)
+        self.back.clicked.connect(self.backing)
+        self.current_player_lbl = QLabel(self.name)
+
+        layout.addWidget(self.game_dialog, 0, 11)
+        layout.addWidget(self.back, 1, 11)
+        layout.addWidget(self.current_player_lbl, 2, 11)
+        layout.setRowStretch(9, 1)
+        layout.setColumnStretch(9, 1)
+
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        img_path = os.path.join(base_dir, "imgs\\kukoldinis_pawns.jpg").replace(
+            "\\", "/"
+        )
+
+        self.checkmates_tab.setObjectName("checkmates_tab")
+
+        self.checkmates_tab.setStyleSheet(f"""
+            QWidget#checkmates_tab {{
+                border-image: url("{img_path}") 0 0 0 0 stretch stretch;
+            }}
+        """)
+
+    def cell_clicked(self, cell_id):
+        if not self.checkmates.playing:
+            return
+
+        self.board_update_ui()
+
+        if self.checkmates.current_piece is None:
+            possible_steps = self.checkmates.possible_steps(cell_id)
+            for move in possible_steps:
+                id = move.to_square
+                self.board_buttons[id].setStyleSheet(
+                    "QPushButton {color: rgb(190, 150, 4);"
+                    + " background-color: rgba(73, 209, 0, 0.3);"
+                    + " font-size: 36px; font-weight: bold;} QPushButton:hover {border: 2px solid rgb(190, 150, 4)}"
+                )
+            return
+
+        if self.board.color_at(self.checkmates.current_piece) == self.board.color_at(
+            cell_id
+        ):
+            possible_steps = self.checkmates.possible_steps(cell_id)
+            for move in possible_steps:
+                id = move.to_square
+                self.board_buttons[id].setStyleSheet(
+                    "QPushButton {color: rgb(190, 150, 4);"
+                    + " background-color: rgba(73, 209, 0, 0.3);"
+                    + " font-size: 36px; font-weight: bold;} QPushButton:hover {border: 2px solid rgb(190, 150, 4)}"
+                )
+            return
+
+        core = self.checkmates.step_validation(self.checkmates.current_piece, cell_id)
+        if not core:
+            return
+
+        self.board_update_ui()
+        res = self.checkmates.game_validate()
+        if res:
+            self.game_dialog.setText(res)
+            if res != "Шах":
+                self.new_game_question_chess()
+
+    def chess_game(self):
+        self.vsblty_toogler(self.checkmates_layout, True)
+        self.checkmates.game_starter()
+        self.board = self.checkmates.board
+        self.start_the_gamec.hide()
+        if not self.board_buttons:
+            self.checkmates_custom()
+
+        if self.name == "???":
+            self.get_players_name()
+        self.board_update_ui()
+
+    def backing(self):
+        if not self.checkmates.playing:
+            return
+
+        if self.board.move_stack:
+            self.board.pop()
+        self.board_update_ui()
+
+    def board_update_ui(self):
+        self.game_dialog.setText(
+            f"Сейчас ходят: {['Черные', 'Белые'][self.board.turn]}"
+        )
+        for square, button in self.board_buttons.items():
+            piece = self.board.piece_at(square)
+            colorr = ["white", "black"][(square // 8 + square % 8) % 2]
+            ss = (
+                "QPushButton {"
+                + f"background-color: {colorr}; color: rgb(190, 150, 4);"
+                + " font-size: 36px; font-weight: bold;} QPushButton:hover {border: 2px solid rgb(190, 150, 4)}"
+            )
+            if piece:
+                button.setText(piece.unicode_symbol())
+
+                button.setStyleSheet(ss)
+            else:
+                button.setText("")
+                button.setStyleSheet(ss)
+
+    def new_game_question_chess(self):
+        answer = QMessageBox.question(
+            self,
+            "Повторная игра",
+            "Сыграем еще?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            self.chess_game()
+            return
+
+        self.name = "???"
+        self.board_buttons.clear()
+        self.vsblty_toogler(self.checkmates_layout, False)
+        self.start_the_gamec.show()
 
 
 if __name__ == "__main__":

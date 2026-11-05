@@ -3,7 +3,7 @@ import random as rand
 
 class BlackJackKukoldini:
     # Словарь номиналов карт
-    WORTH = {
+    __WORTH = {  # noqa: RUF012
         "1": 1,
         "2": 2,
         "3": 3,
@@ -14,9 +14,9 @@ class BlackJackKukoldini:
         "8": 8,
         "9": 9,
         "10": 10,
-        "J": 10,
-        "Q": 10,
-        "K": 10,
+        "J": 3,
+        "Q": 4,
+        "K": 5,
         "A": 11,
         "KUKOLDINI": 21,
     }
@@ -80,7 +80,7 @@ class BlackJackKukoldini:
     def conver(self, deck):
         score = 0
         for card in deck:
-            score += self.WORTH[card]
+            score += self.__WORTH[card]
 
         return score
 
@@ -148,4 +148,4 @@ class BlackJackKukoldini:
             self.dealers_bank += self.pot // 2
 
         self.pot = 0
-
+    

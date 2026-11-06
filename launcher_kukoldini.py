@@ -2,6 +2,7 @@ import os
 import sys
 
 from black_jack_k import BlackJackKukoldini
+from database import DataBaseManager
 from kukoldini_chess import Kukoldini_Pawns
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
@@ -13,8 +14,11 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMenuBar,
     QMessageBox,
     QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -26,6 +30,7 @@ class Launcher(QMainWindow):
         super().__init__()
         self.resize(1024, 1024)
         self.menu = QTabWidget()
+        self.db_manager = DataBaseManager("stats.sqlite3")
         self.name = "???"
         self.setCentralWidget(self.menu)
         self.setWindowTitle("Лаунчер Куколдини")
@@ -57,6 +62,9 @@ class Launcher(QMainWindow):
         self.board_buttons = {}
 
         stats_tab = QWidget()
+        self.stats_layout = QVBoxLayout(stats_tab)
+        self.game_stats = QMenuBar()
+        self.stats_custom()
 
         self.menu.addTab(self.blackjack_tab, "БлекДжек Куколдини")
         self.menu.addTab(self.checkmates_tab, "Пешки Куколдини")
@@ -158,7 +166,7 @@ class Launcher(QMainWindow):
 
         self.name = name
 
-        self.bj_toogler(self.black_jack_layout, True)
+        self.vsblty_toogler(self.black_jack_layout, True)
         self.start_the_gamed.hide()
 
         if hasattr(self, "pot"):
@@ -217,6 +225,7 @@ class Launcher(QMainWindow):
         self.kukoldinis_hand.setText(
             "\n".join(f"[{i}]" for i in self.black_jack.dealers_deck)
         )
+        self.db_manager.add_res(self.name, "black_jack", self.name in res)
         self.round_ending()
 
     def get_players_name(self):
@@ -230,6 +239,8 @@ class Launcher(QMainWindow):
 
         if hasattr(self, "kukoldinis_speech"):
             self.kukoldinis_speech.clear()
+
+        self.db_manager.register_or_get_player(name.strip())
         return name.strip()
 
     def player_grabbing(self):
@@ -399,11 +410,12 @@ class Launcher(QMainWindow):
         self.checkmates.game_starter()
         self.board = self.checkmates.board
         self.start_the_gamec.hide()
+        if self.name == "???":
+            self.name = self.get_players_name()
+
         if not self.board_buttons:
             self.checkmates_custom()
-
-        if self.name == "???":
-            self.get_players_name()
+        self.current_player_lbl.setText(self.name)
         self.board_update_ui()
 
     def backing(self):
@@ -435,6 +447,9 @@ class Launcher(QMainWindow):
                 button.setStyleSheet(ss)
 
     def new_game_question_chess(self):
+        self.db_manager.register_or_get_player(
+            self.name, "chess", "Белые" in self.game_dialog
+        )
         answer = QMessageBox.question(
             self,
             "Повторная игра",
@@ -449,6 +464,35 @@ class Launcher(QMainWindow):
         self.board_buttons.clear()
         self.vsblty_toogler(self.checkmates_layout, False)
         self.start_the_gamec.show()
+
+    def database_unwraping(self):
+        self.stats_table.clearContents()
+        self.stats_table.setRowCount(0)
+
+        database = ["chess", "black_jack"][self.sender().text() == "БлэкДжек Куколдини"]
+        res = self.db_manager.get_stats(database)
+        rows, cols = len(res), 3
+
+        self.stats_table.setRowCount(rows)
+
+        for row in range(rows):
+            for col in range(cols):
+                item = QTableWidgetItem(str(res[row][col]))
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.stats_table.setItem(row, col, item)
+
+    def stats_custom(self):
+        games = self.game_stats.addMenu("Игры Куколдини")
+        self.bj_data = games.addAction("БлэкДжек Куколдини")
+        self.chess_data = games.addAction("Пешки Куколдини")
+        self.bj_data.triggered.connect(self.database_unwraping)
+        self.chess_data.triggered.connect(self.database_unwraping)
+        self.stats_table = QTableWidget()
+        self.stats_table.setColumnCount(3)
+        self.stats_table.setHorizontalHeaderLabels(self.db_manager.headers)
+        self.stats_table.horizontalHeader().setStretchLastSection(True)
+        self.stats_layout.addWidget(self.game_stats)
+        self.stats_layout.addWidget(self.stats_table)
 
 
 if __name__ == "__main__":

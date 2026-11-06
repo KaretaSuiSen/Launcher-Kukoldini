@@ -447,8 +447,8 @@ class Launcher(QMainWindow):
                 button.setStyleSheet(ss)
 
     def new_game_question_chess(self):
-        self.db_manager.register_or_get_player(
-            self.name, "chess", "Белые" in self.game_dialog
+        self.db_manager.add_res(
+            self.name, "chess", "Белые" in self.game_dialog.text()
         )
         answer = QMessageBox.question(
             self,

@@ -447,9 +447,7 @@ class Launcher(QMainWindow):
                 button.setStyleSheet(ss)
 
     def new_game_question_chess(self):
-        self.db_manager.add_res(
-            self.name, "chess", "Белые" in self.game_dialog.text()
-        )
+        self.db_manager.add_res(self.name, "chess", "Белые" in self.game_dialog.text())
         answer = QMessageBox.question(
             self,
             "Повторная игра",
@@ -461,6 +459,8 @@ class Launcher(QMainWindow):
             return
 
         self.name = "???"
+        self.game_dialog.setText()
+        self.current_player_lbl.setText("")
         self.board_buttons.clear()
         self.vsblty_toogler(self.checkmates_layout, False)
         self.start_the_gamec.show()

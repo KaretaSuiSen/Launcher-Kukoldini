@@ -4,6 +4,7 @@ import sys
 from black_jack_k import BlackJackKukoldini
 from database import DataBaseManager
 from kukoldini_chess import Kukoldini_Pawns
+from logger_configs import get_logger
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
@@ -24,6 +25,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+logger = get_logger(__name__)
+
 
 class Launcher(QMainWindow):
     def __init__(self):
@@ -37,6 +40,7 @@ class Launcher(QMainWindow):
         need_dir = os.path.dirname(os.path.abspath(__file__))
         icon = os.path.join(need_dir, "imgs\\launcher_kukoldini.png").replace("\\", "/")
         self.setWindowIcon(QIcon(icon))
+        logger.info("Лаунчер запущен")
 
         self.black_jack = BlackJackKukoldini()
         self.blackjack_tab = QWidget()
@@ -48,6 +52,7 @@ class Launcher(QMainWindow):
         self.black_jack_layout.addWidget(
             self.start_the_gamed, 1, 1, Qt.AlignmentFlag.AlignCenter
         )
+        logger.info("Кнопка для старта блекджека")
 
         self.checkmates = Kukoldini_Pawns()
         self.checkmates_tab = QWidget()
@@ -60,6 +65,7 @@ class Launcher(QMainWindow):
             self.start_the_gamec, 1, 1, Qt.AlignmentFlag.AlignCenter
         )
         self.board_buttons = {}
+        logger.info("Кнопка для старта шахмат")
 
         stats_tab = QWidget()
         self.stats_layout = QVBoxLayout(stats_tab)
@@ -69,6 +75,7 @@ class Launcher(QMainWindow):
         self.menu.addTab(self.blackjack_tab, "БлекДжек Куколдини")
         self.menu.addTab(self.checkmates_tab, "Пешки Куколдини")
         self.menu.addTab(stats_tab, "Статистика игрока")
+        logger.info("Страница для Бдшки")
 
     def blackjack_custom(self):
         self.stop = False
@@ -154,6 +161,8 @@ class Launcher(QMainWindow):
         layout.addWidget(self.start_the_game, 5, 1)
         layout.setRowStretch(3, 1)
 
+        logger.info("Блекджек отрисован")
+
     def kukoldini_game(self):
         name = self.get_players_name()
         self.name = name
@@ -172,11 +181,14 @@ class Launcher(QMainWindow):
         if hasattr(self, "pot"):
             self.update_ui()
 
+        logger.info("Блекджек запущен")
+
         self.start_the_game.setEnabled(False)
         self.play_round()
 
     def play_round(self):
         if self.stop:
+            logger.info("Блекджек завершен")
             return
 
         self.kukoldinis_speech.setText("")
@@ -205,6 +217,7 @@ class Launcher(QMainWindow):
         if verdict == "player":
             self.kukoldinis_speech.setText("Ты банкрот! Игра окончена.")
             self.stop = True
+            logger.info("Блекджек закончен: победа игрока")
             self.add_cards_to_deck.setEnabled(False)
             self.pass_grabbing.setEnabled(False)
             self.new_game_question_bj()
@@ -212,6 +225,7 @@ class Launcher(QMainWindow):
         elif verdict == "dealer":
             self.kukoldinis_speech.setText("Куколдини разорен! Ты сорвал весь куш!")
             self.stop = True
+            logger.info("Блекджек закончен: победа куколдини")
             self.add_cards_to_deck.setEnabled(False)
             self.pass_grabbing.setEnabled(False)
             self.new_game_question_bj()
@@ -226,6 +240,7 @@ class Launcher(QMainWindow):
             "\n".join(f"[{i}]" for i in self.black_jack.dealers_deck)
         )
         self.db_manager.add_res(self.name, "black_jack", self.name in res)
+        logger.info("Блекджек раунд сыгран")
         self.round_ending()
 
     def get_players_name(self):
@@ -241,10 +256,14 @@ class Launcher(QMainWindow):
             self.kukoldinis_speech.clear()
 
         self.db_manager.register_or_get_player(name.strip())
+
+        logger.info("Получено имя игрока")
+
         return name.strip()
 
     def player_grabbing(self):
         self.black_jack.player_grabbing()
+        logger.info("Игрок добирает")
         self.update_ui()
 
     def update_ui(self):
@@ -262,6 +281,8 @@ class Launcher(QMainWindow):
         self.players_bet_l.setText(f"Баланс {self.name}:")
         self.players_hand_l.setText(f"Рука {self.name}:")
 
+        logger.info("Блекджек отрисовал обновления")
+
     def reset(self):
         self.name = "???"
         self.kukoldinis_speech.clear()
@@ -277,6 +298,8 @@ class Launcher(QMainWindow):
         self.pass_grabbing.setEnabled(True)
         self.stop = False
 
+        logger.info("Блекджек перезаписан(сброшен)")
+
     def round_ending(self):
         self.add_cards_to_deck.setEnabled(False)
         self.pass_grabbing.setEnabled(False)
@@ -286,6 +309,8 @@ class Launcher(QMainWindow):
         self.start_the_game.setEnabled(True)
         self.start_the_game.clicked.disconnect()
         self.start_the_game.clicked.connect(self.play_round)
+
+        logger.info("Блекджек раунд завершен, сбросс")
 
     def new_game_question_bj(self):
         answer = QMessageBox.question(
@@ -301,6 +326,7 @@ class Launcher(QMainWindow):
 
         self.reset()
         self.vsblty_toogler(self.black_jack_layout, False)
+        logger.info("Блекджек новая игра?")
         self.start_the_gamed.show()
 
     @staticmethod
@@ -321,6 +347,8 @@ class Launcher(QMainWindow):
                 layout_s = item.layout()
                 if layout_s is not None:
                     Launcher.vsblty_toogler(layout_s, visibility)
+
+        logger.info(f"{layout} переключен на {visibility}")
 
     def checkmates_custom(self):
         layout = self.checkmates_layout
@@ -364,6 +392,8 @@ class Launcher(QMainWindow):
             }}
         """)
 
+        logger.info("Шахматы отрисованы")
+
     def cell_clicked(self, cell_id):
         if not self.checkmates.playing:
             return
@@ -379,6 +409,7 @@ class Launcher(QMainWindow):
                     + " background-color: rgba(73, 209, 0, 0.3);"
                     + " font-size: 36px; font-weight: bold;} QPushButton:hover {border: 2px solid rgb(190, 150, 4)}"
                 )
+            logger.info("Шахматы: клетка выбрана первый раз")
             return
 
         if self.board.color_at(self.checkmates.current_piece) == self.board.color_at(
@@ -392,10 +423,12 @@ class Launcher(QMainWindow):
                     + " background-color: rgba(73, 209, 0, 0.3);"
                     + " font-size: 36px; font-weight: bold;} QPushButton:hover {border: 2px solid rgb(190, 150, 4)}"
                 )
+            logger.info("Шахматы: клетка выбрана второй раз")
             return
 
         core = self.checkmates.step_validation(self.checkmates.current_piece, cell_id)
         if not core:
+            logger.info("Шахматы: выбранная клетка без фигуры")
             return
 
         self.board_update_ui()
@@ -416,14 +449,17 @@ class Launcher(QMainWindow):
         if not self.board_buttons:
             self.checkmates_custom()
         self.current_player_lbl.setText(self.name)
+        logger.info("Шахматы: игра запущена")
         self.board_update_ui()
 
     def backing(self):
         if not self.checkmates.playing:
+            logger.warning("Шахматы: попытка бэкнуть неначавшуюся игру")
             return
 
         if self.board.move_stack:
             self.board.pop()
+            logger.info("Шахматы: бэк произошел")
         self.board_update_ui()
 
     def board_update_ui(self):
@@ -440,11 +476,13 @@ class Launcher(QMainWindow):
             )
             if piece:
                 button.setText(piece.unicode_symbol())
-
                 button.setStyleSheet(ss)
+
             else:
                 button.setText("")
                 button.setStyleSheet(ss)
+
+        logger.info("Шахматы: доска обновилась после хода")
 
     def new_game_question_chess(self):
         self.db_manager.add_res(self.name, "chess", "Белые" in self.game_dialog.text())
@@ -456,6 +494,7 @@ class Launcher(QMainWindow):
         )
         if answer == QMessageBox.StandardButton.Yes:
             self.chess_game()
+            logger.info("Шахматы: начало новой игры")
             return
 
         self.name = "???"
@@ -464,6 +503,7 @@ class Launcher(QMainWindow):
         self.board_buttons.clear()
         self.vsblty_toogler(self.checkmates_layout, False)
         self.start_the_gamec.show()
+        logger.info("Шахматы: loading menu")
 
     def database_unwraping(self):
         self.stats_table.clearContents()
@@ -481,6 +521,8 @@ class Launcher(QMainWindow):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.stats_table.setItem(row, col, item)
 
+        logger.info("появление на свет/обновление бдшки")
+
     def stats_custom(self):
         games = self.game_stats.addMenu("Игры Куколдини")
         self.bj_data = games.addAction("БлэкДжек Куколдини")
@@ -493,6 +535,8 @@ class Launcher(QMainWindow):
         self.stats_table.horizontalHeader().setStretchLastSection(True)
         self.stats_layout.addWidget(self.game_stats)
         self.stats_layout.addWidget(self.stats_table)
+
+        logger.info("Бд: кастом статов")
 
 
 if __name__ == "__main__":

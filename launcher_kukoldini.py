@@ -435,6 +435,8 @@ class Launcher(QMainWindow):
         res = self.checkmates.game_validate()
         if res:
             self.game_dialog.setText(res)
+            if self.game_dialog.text() == "Шах":
+                self.check = True
             if res != "Шах":
                 self.new_game_question_chess()
 
@@ -463,9 +465,14 @@ class Launcher(QMainWindow):
         self.board_update_ui()
 
     def board_update_ui(self):
-        self.game_dialog.setText(
-            f"Сейчас ходят: {['Черные', 'Белые'][self.board.turn]}"
-        )
+        if not self.checkmates.playing:
+            return
+
+        if not self.board.is_check() and not self.board.is_checkmate():
+            self.game_dialog.setText(
+                f"Сейчас ходят: {['Черные', 'Белые'][self.board.turn]}"
+            )
+
         for square, button in self.board_buttons.items():
             piece = self.board.piece_at(square)
             colorr = ["white", "black"][(square // 8 + square % 8) % 2]
@@ -498,7 +505,7 @@ class Launcher(QMainWindow):
             return
 
         self.name = "???"
-        self.game_dialog.setText()
+        self.game_dialog.setText("")
         self.current_player_lbl.setText("")
         self.board_buttons.clear()
         self.vsblty_toogler(self.checkmates_layout, False)
